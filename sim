@@ -1,0 +1,54 @@
+#!/usr/bin/perl -w
+# Author: William Viker <william.viker@gmail.com> 2008
+# Search for underlying files to edit.
+# $ sim Root.pm
+# if only one match, edit bla/bla/Root.pm, or else, make suggestions.
+
+use strict;
+use Data::Dumper;
+use Term::GetKey;
+
+my $down   = 0;
+my $search = $ARGV[0];
+my $extra  = "";
+my $sfile;
+
+exit unless length $search;
+
+$| = 1;
+
+$down = int( $ARGV[1] ) if $ARGV[1];
+$extra .= "/.." for (1 .. $down);
+
+my $find  = `find .$extra -iname $search`;
+my @files = split /\n/, $find;
+
+if ($find =~ /^$/) {
+	print STDERR "No match!\n";
+	exit;
+}
+
+if ( @files > 1 ) {
+	my $num = 0;
+	print "Multiple hits:\n";
+	for my $file (@files) {
+		printf( " %d: %s\n", ++$num, $file );
+		if ( $num == 9 ) {
+			last;
+		}
+	}
+	OUTER: while (1) {
+	       if ( my $char = qtty() ) {
+		       if ( $char =~ /(\d+)/ && defined $files[ $1 - 1 ] ) {
+			       $sfile = $files[ $1 - 1 ];
+			       last OUTER;
+		       }
+	       }
+       }
+}
+
+else {
+	$sfile = $files[0];
+}
+
+system( "vim", $sfile );
